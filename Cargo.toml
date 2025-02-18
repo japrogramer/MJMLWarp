@@ -1,0 +1,18 @@
+[package]
+name = "mrml_template_renderer"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "mrml" # Name of the binary to generate
+path = "src/main.rs" # Path to the main binary file
+
+[dependencies]
+axum = "0.6"
+tokio = { version = "1", features = ["full"] } # For asynchronous runtime
+warp = "0.3" # Web framework
+handlebars = "4.3" # Handlebars template rendering
+mrml = "2"
+select = "0.5" # HTML parser library
+serde = { version = "1.0", features = ["derive"] } # For JSON serialization/deserialization
+serde_json = "1.0" # For JSON parsing

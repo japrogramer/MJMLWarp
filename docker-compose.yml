@@ -1,0 +1,15 @@
+services:
+  mrml-server:
+    build:
+      context: . # The directory containing Dockerfile, src, Cargo.toml, Cargo.lock, etc.
+      dockerfile: Dockerfile # Reference Dockerfile in the current directory
+    container_name: mrml-server # Name the container
+    ports:
+      - "3030:3030" # Map host port 3030 to container port 3030
+    volumes:
+      - ./templates:/app/templates # Ensure the templates folder is mapped for hot-reloading, if needed
+    #environment:
+    #
+      # Add environment variables here if needed
+      # For example: RUST_LOG=info
+    command: ["./mrml"] # Override the CMD if necessary
