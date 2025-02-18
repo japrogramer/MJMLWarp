@@ -4,7 +4,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use handlebars::{Handlebars, Helper, Output, RenderContext, RenderError};
+use handlebars::Handlebars;
 use mrml::{prelude::render::RenderOptions, self}; // Corrected import for RenderOptions
 use serde::Deserialize;
 use serde_json::Value;
@@ -16,7 +16,7 @@ use tokio::io::AsyncWriteExt;
 
 #[derive(Deserialize)]
 struct MjmlInput {
-    mjml: String,
+    mjml: Option<String>,
     payload: Value,
     template: Option<String>,
 }
@@ -24,32 +24,22 @@ struct MjmlInput {
 /// Converts MJML input to HTML using the mrml crate and handlebars templating.
 use std::fs::read_to_string;
 
-async fn convert_mjml(Json(payload): Json<MjmlInput>) -> Response {
-    let template_content = match &payload.template {
-        Some(template_name) => match read_to_string(format!("./templates/{}", template_name)) {
-            Ok(content) => Some(content),
-            Err(_) => None,
-        },
-        None => None,
-    };
-
-    let mjml_content = match template_content {
-        Some(content) => content,
-        None => payload.mjml.clone(),
-    };
-
-    let parsed = mrml::parse(&mjml_content);
-
-    match parsed {
-        Ok(root) => {
-
-            match root.render(&RenderOptions::default()) {
-                Ok(html) => (axum::http::StatusCode::OK, html).into_response(),
-                Err(e) => (axum::http::StatusCode::BAD_REQUEST, format!("Couldn't render MJML template: {}", e)).into_response(),
-            }
+async fn convert_mjml(Json(payload): Json<MjmlInput>) -> Result<Response, (axum::http::StatusCode, String)> {
+    let mjml_content = match &payload.template {
+        Some(template_name) => {
+            let template_path = format!("./templates/{}", template_name);
+            read_to_string(&template_path).map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to read template file {}: {}", template_path, e)))?
         }
-        Err(e) => (axum::http::StatusCode::BAD_REQUEST, format!("Invalid MJML input: {}", e)).into_response(),
-    }
+        None => {
+            payload.mjml.clone().ok_or((axum::http::StatusCode::BAD_REQUEST, "Missing MJML input".to_string()))?
+        }
+    };
+
+    let handlebars = Handlebars::new();
+    let mjml_content = handlebars.render_template(&mjml_content, &payload.payload).map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Handlebars rendering error: {}", e)))?;
+    let parsed = mrml::parse(&mjml_content).map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("Invalid MJML input: {}", e)))?;
+    let rendered = parsed.render(&RenderOptions::default()).map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("Couldn't render MJML template: {}", e)))?;
+    Ok((axum::http::StatusCode::OK, rendered).into_response())
 }
 
 /// Lists all MJML templates in the ./templates directory.

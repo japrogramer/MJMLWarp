@@ -1,0 +1,6 @@
+<mjml>
+  <mj-body>
+    <mj-text>Hello, {{name}}!</mj-text>
+    <mj-text>Your order ID is: {{orderId}}</mj-text>
+  </mj-body>
+</mjml>
