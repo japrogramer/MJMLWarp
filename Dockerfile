@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM rust:1.71 AS builder
+FROM rust:1.83 AS builder
 
 # Set the working directory
 WORKDIR /app
@@ -21,8 +21,11 @@ COPY ./src ./src
 RUN rm -rf target
 RUN cargo build --release
 
-# Stage 2: Run the application using a minimal image
-FROM debian:bullseye-slim
+# Stage 2: Run the application using a minimal image with updated GLIBC
+FROM ubuntu:22.04
+
+# Install required libraries for GLIBC compatibility
+RUN apt-get update && apt-get install -y libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
 WORKDIR /app

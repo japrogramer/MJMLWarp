@@ -8,7 +8,9 @@ name = "mrml" # Name of the binary to generate
 path = "src/main.rs" # Path to the main binary file
 
 [dependencies]
-axum = "0.6"
+axum = { version = "0.6", features = ["multipart"] }
+bytes = "1"
+futures-util = "0.3"
 tokio = { version = "1", features = ["full"] } # For asynchronous runtime
 warp = "0.3" # Web framework
 handlebars = "4.3" # Handlebars template rendering

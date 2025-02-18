@@ -4,32 +4,21 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use mrml;
+use handlebars::{Handlebars, Helper, Output, RenderContext, RenderError};
+use mrml::{prelude::render::RenderOptions, self}; // Corrected import for RenderOptions
 use serde::Deserialize;
-use std::net::SocketAddr;
+use serde_json::Value;
 use std::fs;
+use std::net::SocketAddr;
 use std::path::Path;
 use tokio::fs::File;
-use bytes::Bytes;
-use futures_util::StreamExt;
-use handlebars::{Handlebars, Helper, JsonRender, Output, RenderContext, RenderError};
+use tokio::io::AsyncWriteExt;
 
 #[derive(Deserialize)]
 struct MjmlInput {
     mjml: String,
-    payload: serde_json::Value,
+    payload: Value,
     template: Option<String>,
-}
-
-/// Handlebars helper function.  Currently a placeholder, prints helper details to console.
-fn handlebars_helper(
-    h: &Helper,
-    _: &Handlebars,
-    _: &mut RenderContext,
-    _: &mut dyn Output,
-) -> Result<(), RenderError> {
-    println!("Handlebars helper called with: {:?}", h);
-    Ok(())
 }
 
 /// Converts MJML input to HTML using the mrml crate and handlebars templating.
@@ -37,12 +26,10 @@ use std::fs::read_to_string;
 
 async fn convert_mjml(Json(payload): Json<MjmlInput>) -> Response {
     let template_content = match &payload.template {
-        Some(template_name) => {
-            match read_to_string(format!("./templates/{}", template_name)) {
-                Ok(content) => Some(content),
-                Err(_) => None,
-            }
-        }
+        Some(template_name) => match read_to_string(format!("./templates/{}", template_name)) {
+            Ok(content) => Some(content),
+            Err(_) => None,
+        },
         None => None,
     };
 
@@ -55,10 +42,8 @@ async fn convert_mjml(Json(payload): Json<MjmlInput>) -> Response {
 
     match parsed {
         Ok(root) => {
-            let mut handlebars = Handlebars::new();
-            handlebars.register_helper("helper", Box::new(handlebars_helper));
 
-            match root.render_with_context(&mut handlebars, &payload.payload) {
+            match root.render(&RenderOptions::default()) {
                 Ok(html) => (axum::http::StatusCode::OK, html).into_response(),
                 Err(e) => (axum::http::StatusCode::BAD_REQUEST, format!("Couldn't render MJML template: {}", e)).into_response(),
             }
@@ -83,18 +68,19 @@ async fn list_templates() -> Result<impl IntoResponse, (axum::http::StatusCode, 
     Ok(Json(templates))
 }
 
-/// Uploads a new MJML template to the ./templates directory.  Validates file type and MJML syntax.
+/// Uploads a new MJML template to the ./templates directory. Validates file type and MJML syntax.
 async fn upload_template(mut multipart: Multipart) -> Result<impl IntoResponse, (axum::http::StatusCode, String)> {
-    while let Some(field) = multipart.next_field().await.transpose()? {
+    let mut templates = Vec::new();
+    while let Ok(Some(mut field)) = multipart.next_field().await {
         let file_name = field.file_name().unwrap().to_string();
-        let content_type = field.content_type().to_string();
+        let content_type = field.content_type().unwrap_or("text/plain").to_string();
 
         if !content_type.contains("text/plain") {
             return Err((axum::http::StatusCode::BAD_REQUEST, "Invalid file type. Only text/plain is allowed.".to_string()));
         }
 
         let mut buffer = Vec::new();
-        while let Some(chunk) = field.chunk().await.transpose()? {
+        while let Ok(Some(chunk)) = field.chunk().await {
             buffer.extend_from_slice(&chunk);
         }
 
@@ -106,12 +92,16 @@ async fn upload_template(mut multipart: Multipart) -> Result<impl IntoResponse, 
                 let file_path = format!("./templates/{}", file_name);
                 let mut file = File::create(file_path).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to create file: {}", e)))?;
                 file.write_all(&buffer).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to write file: {}", e)))?;
-                Ok((axum::http::StatusCode::OK, format!("Template '{}' uploaded successfully", file_name)))
+                templates.push(file_name);
             }
-            Err(_) => Err((axum::http::StatusCode::BAD_REQUEST, "Invalid MJML input".to_string())),
-        }?
+            Err(_) => return Err((axum::http::StatusCode::BAD_REQUEST, "Invalid MJML input".to_string())),
+        }
     }
-    Ok((axum::http::StatusCode::OK, "No files uploaded".to_string()))
+    if templates.is_empty() {
+        Ok((axum::http::StatusCode::OK, "No files uploaded".to_string()))
+    } else {
+        Ok((axum::http::StatusCode::OK, format!("Templates {:?} uploaded successfully", templates)))
+    }
 }
 
 
