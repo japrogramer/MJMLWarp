@@ -1,46 +1,28 @@
-# Stage 1: Build the application
+# Stage 1: Build the application with MUSL
 FROM rust:1.83 AS builder
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the Cargo.toml and Cargo.lock files to set up dependencies
+# Add MUSL target and dependencies
+RUN rustup target add x86_64-unknown-linux-musl
+
+# Copy source files and build dependencies
 COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release --target=x86_64-unknown-linux-musl || true
 
-# Cache dependencies to avoid redundant downloads
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release  || true
-
-# Remove the dummy `main.rs`
 RUN rm -rf src && mkdir src
-
-# Copy the real source code
 COPY ./src ./src
 
-# Force a clean build to ensure the real source is built
-RUN rm -rf target
-RUN cargo build --release
+# Build the actual application
+RUN cargo build --target=x86_64-unknown-linux-musl
 
-# Stage 2: Run the application using a minimal image with updated GLIBC
-FROM ubuntu:22.04
+# Stage 2: Minimal runtime image with scratch
+FROM scratch
 
-# Install required libraries for GLIBC compatibility
-RUN apt-get update && apt-get install -y libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
-
-# Set the working directory
 WORKDIR /app
 
-# Copy the compiled binary from the builder stage
-COPY --from=builder /app/target/release/mrml /app/mrml
+# Copy the statically linked binary from builder stage
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/debug/mrml /mrml
 
-# Ensure binary is executable
-RUN chmod +x /app/mrml
-
-# Copy optional templates directory
-COPY ./templates /app/templates
-
-# Expose the port the app will run on
-EXPOSE 3030
-
-# Run the application
-CMD ["./mrml"]
+# Set executable permissions and entrypoint
+ENTRYPOINT ["/mrml"]
