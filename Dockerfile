@@ -14,7 +14,7 @@ RUN rm -rf src && mkdir src
 COPY ./src ./src
 
 # Build the actual application
-RUN cargo build --target=x86_64-unknown-linux-musl
+RUN cargo build --release --target=x86_64-unknown-linux-musl
 
 # Stage 2: Minimal runtime image with scratch
 FROM scratch
@@ -22,7 +22,7 @@ FROM scratch
 WORKDIR /app
 
 # Copy the statically linked binary from builder stage
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/debug/mrml /mrml
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/mrml /mrml
 
 # Set executable permissions and entrypoint
 ENTRYPOINT ["/mrml"]

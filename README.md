@@ -1,4 +1,4 @@
-# mrml_template_renderer
+# MUSL MRML Server 
 
 This project renders MJML templates using Handlebars.
 
@@ -52,7 +52,7 @@ curl http://localhost:3030/templates
 
 ```bash
 curl -X POST \
-  -F "file=@./my-template.mjml" \
+  -F "file=@./example.mjml;filename=example.mjml;type=text/plain" \
   http://localhost:3030/templates
 ```
 
@@ -62,13 +62,21 @@ curl -X POST \
 curl http://localhost:3030/templates
 ```
 
-### Upload Template
+### Key notes
 
-```bash
-curl -X POST \
-  -F "file=@./my-template.mjml" \
-  http://localhost:3030/templates
-```
+The Dockerfile creates a tiny and fast Rust container image using static linking with MUSL and a `scratch` base.
+
+**Key Optimizations:**
+
+*   **MUSL Static Linking:** Generates a self-contained executable, eliminating runtime dependencies and significantly reducing image size.
+*   **`scratch` Base Image:** Starts with an empty image, resulting in the smallest possible footprint. Only the executable is included in the final image.
+*   **Dependency Caching:** Leverages Docker's caching mechanism for faster build times by separating dependency installation from source code changes.
+
+**Benefits:**
+
+*   **Small Image Size:**  Reduces storage space and bandwidth usage.
+*   **Faster Deployment:** Smaller images download and start quickly.
+*   **Improved Security:** Reduced attack surface due to the minimal operating system.
 
 
 ## Contributing
