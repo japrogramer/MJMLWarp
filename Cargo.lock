@@ -886,6 +886,7 @@ dependencies = [
  "bytes",
  "futures-util",
  "handlebars",
+ "hyper",
  "mrml",
  "select",
  "serde",

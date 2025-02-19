@@ -123,7 +123,7 @@ async fn upload_template(mut multipart: Multipart) -> Result<impl IntoResponse, 
 
 #[tokio::main]
 async fn main() {
-    let mut handlebars = Handlebars::new();
+    let handlebars = Handlebars::new();
     // Register helpers here if you have any
     // handlebars.register_helper(...);
     let app_state = AppState { handlebars };
@@ -143,3 +143,6 @@ async fn main() {
         .await
         .unwrap();
 }
+
+#[cfg(test)]
+mod tests;
