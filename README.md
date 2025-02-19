@@ -12,8 +12,11 @@ This project renders MJML templates using Handlebars.
 *   `select`: HTML parser
 *   `serde` and `serde_json`: JSON serialization/deserialization
 
-## Usage
-(Instructions on how to run the application would go here)
+## Build And Run
+
+```bash
+docker-compose up -d
+```
 
 ## Curl Examples
 
@@ -39,13 +42,6 @@ curl -X POST \
     "template": "my-template.mjml"
   }' \
   http://localhost:3030/convert
-```
-
-
-### List Templates
-
-```bash
-curl http://localhost:3030/templates
 ```
 
 ### Upload Template
