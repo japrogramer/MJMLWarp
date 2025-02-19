@@ -1,5 +1,6 @@
-use serde_json::json;
+use super::*;
 use axum::{Json, extract::State, response::{Response, IntoResponse}};
+use serde_json::json;
 use hyper::{StatusCode};
 use handlebars::Handlebars;
 
@@ -10,6 +11,7 @@ use crate::AppState;
 #[tokio::test]
 async fn test_convert_mjml_with_template() -> Result<(), Box<dyn std::error::Error>> {
     let handlebars = Handlebars::new();
+    let template_cache: Arc<RwLock<HashMap<String, CachedTemplate>>> = Arc::new(RwLock::new(HashMap::new()));
     let _template_content = handlebars.render_template(
         r#"<h1>Hello, {{name}}!</h1>"#,
         &json!({"name": "World"}),
@@ -20,7 +22,7 @@ async fn test_convert_mjml_with_template() -> Result<(), Box<dyn std::error::Err
         template: Some("test.mjml".to_string()),
     };
 
-    let response = convert_mjml(State(AppState { handlebars }), Json(mjml_input)).await;
+    let response = convert_mjml(State(AppState { handlebars, template_cache }), Json(mjml_input)).await;
     assert_eq!(response.unwrap().status(), StatusCode::OK);
     Ok(())
 }
@@ -28,13 +30,14 @@ async fn test_convert_mjml_with_template() -> Result<(), Box<dyn std::error::Err
 #[tokio::test]
 async fn test_convert_mjml_with_mjml() -> Result<(), Box<dyn std::error::Error>> {
     let handlebars = Handlebars::new();
+    let template_cache: Arc<RwLock<HashMap<String, CachedTemplate>>> = Arc::new(RwLock::new(HashMap::new()));
     let mjml_input = MjmlInput {
         mjml: Some(r#"<mjml><mj-body><mj-text>Hello, World!</mj-text></mj-body></mjml>"#.to_string()),
         payload: json!({}),
         template: None,
     };
 
-    let response = convert_mjml(State(AppState { handlebars }), Json(mjml_input)).await;
+    let response = convert_mjml(State(AppState { handlebars, template_cache }), Json(mjml_input)).await;
     assert_eq!(response.unwrap().status(), StatusCode::OK);
     Ok(())
 }
