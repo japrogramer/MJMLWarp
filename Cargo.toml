@@ -14,6 +14,7 @@ futures-util = "0.3"
 tokio = { version = "1", features = ["full", "test-util"] } # For asynchronous runtime
 warp = "0.3" # Web framework
 handlebars = "4.3" # Handlebars template rendering
+lru = "0.12.0"
 mrml = "2"
 select = "0.5" # HTML parser library
 serde = { version = "1.0", features = ["derive"] } # For JSON serialization/deserialization

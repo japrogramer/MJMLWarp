@@ -11,7 +11,7 @@ use crate::AppState;
 #[tokio::test]
 async fn test_convert_mjml_with_template() -> Result<(), Box<dyn std::error::Error>> {
     let handlebars = Handlebars::new();
-    let template_cache: Arc<RwLock<HashMap<String, CachedTemplate>>> = Arc::new(RwLock::new(HashMap::new()));
+    let template_cache: Arc<RwLock<LruCache<String, CachedTemplate>>> = Arc::new(RwLock::new(LruCache::new(NonZeroUsize::new(100).unwrap())));
     let _template_content = handlebars.render_template(
         r#"<h1>Hello, {{name}}!</h1>"#,
         &json!({"name": "World"}),
@@ -30,7 +30,7 @@ async fn test_convert_mjml_with_template() -> Result<(), Box<dyn std::error::Err
 #[tokio::test]
 async fn test_convert_mjml_with_mjml() -> Result<(), Box<dyn std::error::Error>> {
     let handlebars = Handlebars::new();
-    let template_cache: Arc<RwLock<HashMap<String, CachedTemplate>>> = Arc::new(RwLock::new(HashMap::new()));
+    let template_cache: Arc<RwLock<LruCache<String, CachedTemplate>>> = Arc::new(RwLock::new(LruCache::new(NonZeroUsize::new(100).unwrap())));
     let mjml_input = MjmlInput {
         mjml: Some(r#"<mjml><mj-body><mj-text>Hello, World!</mj-text></mj-body></mjml>"#.to_string()),
         payload: json!({}),
