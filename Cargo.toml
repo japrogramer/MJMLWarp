@@ -12,6 +12,11 @@ axum = { version = "0.6", features = ["multipart"] }
 bytes = "1"
 futures-util = "0.3"
 tokio = { version = "1", features = ["full", "test-util"] } # For asynchronous runtime
+clap = { version = "4", features = ["derive"] }
+notify = { version = "6.1.1", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
 warp = "0.3" # Web framework
 handlebars = "4.3" # Handlebars template rendering
 lru = "0.12.0"

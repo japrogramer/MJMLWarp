@@ -12,4 +12,4 @@ services:
     #
       # Add environment variables here if needed
       # For example: RUST_LOG=info
-    command: ["./mrml"] # Override the CMD if necessary
+    command: ["-l", "info"] # Override the CMD if necessary
